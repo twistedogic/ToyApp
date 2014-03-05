@@ -11,6 +11,6 @@
   "dependencies": {
     "request": "^2.34.0",
     "cheerio": "^0.13.1",
-    "sequelize": "^1.7.0"
+    "cli-table": "~"
   }
 }

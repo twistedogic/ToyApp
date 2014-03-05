@@ -1,6 +1,7 @@
 var request = require('request'),
     fs = require('fs'),
-    cheerio = require('cheerio');
+    cheerio = require('cheerio'),
+    Table = require('cli-table');
     
 request('http://wiki.shoryuken.com/Super_Street_Fighter_IV_AE/Yang', function (error, response, body) {
     if (!error && response.statusCode == 200) {
@@ -19,31 +20,63 @@ request('http://wiki.shoryuken.com/Super_Street_Fighter_IV_AE/Yang', function (e
             var col = [];
             if (check > 0){
                 $('td').each(function(i, elem) {
-                    col[i] = $(this).text().replace(/(\r\n|\n|\r)/gm,"");
+                    var text = $(this).text().replace(/(\r\n|\n|\r)/gm,""); 
+                    var temp = [];
+                    var img = "";
+                    if ($(this).children('a').children('img').length > 0){
+                        $(this).children('a').children('img').each(function(i,elem) {
+                            temp[i] = $(this).attr('alt');
+                            temp[i] = temp[i].split('.')[0];
+                            img = img + " " + temp[i];
+                        });
+                        // if (img){
+                        //     console.log(img);
+                        // }
+                    }
+                    col[i] = text + img;
                 })
                 var content = {
-                        	'Move Name' : col[0],
-	                        'HL' : col[1],
-	                       // 'Damage' : col[2],
-	                       // 'Stun' : col[3],
-	                       // 'Gain' : col[4],
-	                        'Cancel Ability' : col[5],
-	                        'Startup' : col[6],
-	                        'Active' : col[7],
-	                        'Recovery' : col[8],
-	                        'On Guard' : col[9],
-	                        'On Hit' : col[10]
-	                       // 'Notes' : col[11]
+                        	'MoveName' : col[0],
+                        	'Data': [{
+                        	    'HL' : col[1],
+	                            'Damage' : col[2],
+	                            // 'Stun' : col[3],
+	                            // 'Gain' : col[4],
+	                            'CancelAbility' : col[5],
+	                            'Startup' : col[6],
+	                            'Active' : col[7],
+	                            'Recovery' : col[8],
+	                            'OnGuard' : col[9],
+	                            'OnHit' : col[10],
+	                            'Notes' : col[11]
+                        	}]
                     };
-                data.push(JSON.stringify(content));
+                data.push(content);
+                //console.log(content);
             }
         }
     }
-    fs.writeFile("./out", data, function(err) {
-        if(err) {
-            console.log(err);
-        } else {
-            console.log("The file was saved!");
+    table = new Table({ head: ["Move Name", "Chainable", "Frame trap"] });
+    for (var j = 0; j < data.length; j++){
+        var chain = 0;
+        var trap = 0;
+        if (Number(data[j].Data[0].Recovery) < Number(data[j].Data[0].OnHit)){
+            var chain = 1;
         }
-    }); 
+        if (Number(data[0].Data[0].Startup) < Number(data[j].Data[0].OnGuard)){
+            var trap = 1;
+        }
+        table.push(
+            [data[j].MoveName, chain, trap]
+        );
+    }
+
+    console.log(table.toString());
+    // fs.writeFile("./out.json", JSON.stringify(data), function(err) {
+    //     if(err) {
+    //         console.log(err);
+    //     } else {
+    //         console.log("The file was saved!");
+    //     }
+    // }); 
 })
