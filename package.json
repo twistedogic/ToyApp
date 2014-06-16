@@ -10,5 +10,6 @@
     "cheerio"             : "latest",
     "winston"             : "latest",
     "winston-logstash"    : "latest",
+    "cli-table"		  : "latest"
   }
 }
