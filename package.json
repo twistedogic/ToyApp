@@ -1,16 +1,14 @@
 {
-  "name": "scraper",
-  "version": "0.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "request": "^2.34.0",
-    "cheerio": "^0.13.1",
-    "cli-table": "~"
+  "name"                  : "node-web-scrape",
+  "version"               : "0.0.1",
+  "description"           : "Scrape le web.",
+  "main"                  : "server.js",
+  "author"                : "Scotch",
+  "dependencies"          : {
+    "express"             : "latest",
+    "request"             : "latest",
+    "cheerio"             : "latest",
+    "winston"             : "latest",
+    "winston-logstash"    : "latest",
   }
 }
