@@ -4,6 +4,7 @@ var request = require('request');
 var cheerio = require('cheerio');
 var app     = express();
 var winston = require('winston');
+var port = process.env.PORT || '8080';
 require('winston-logstash');
 
 winston.add(winston.transports.Logstash, {
@@ -304,6 +305,6 @@ app.get('/quote/:stockId', function(req, res){
 
 
 
-app.listen('8080')
+app.listen(port)
 console.log('Magic happens on port 8080');
 exports = module.exports = app; 	
