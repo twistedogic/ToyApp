@@ -17,15 +17,142 @@ winston.add(winston.transports.File, {
     handleExceptions: true
   });
 
-var baseUrl = 'http://finance.yahoo.com/d/quotes.csv?';
+var baseUrl = 'http://www.aastocks.com/tc/LTP/RTTopRank.aspx';
 var quoteUrl = 'http://www.etnet.com.hk/www/eng/stocks/realtime/quote_ci_brief.php?code=';
 var superquoteUrl = 'http://www.etnet.com.hk/www/eng/stocks/realtime/quote_super.php?code=';
 app.get('/rise', function(req, res){
 	console.log('calling');
-	url = baseUrl + 's=6823.HK&f=snb2b3c6';
+	url = baseUrl + '?market=1&category=A';
 	request(url, function(error, response, html){
 		if(!error){
 			var $ = cheerio.load(html);	
+			var table = $('div .mainTable_c').html();
+			var id, name, price, rise, volume, lastUpdate;
+			var json = { id:"", name:"", price:"", rise:"", volume:"", lastUpdate:""};
+			var row = [];
+			$ = cheerio.load(table);	
+			$('tr').each(function(i, elem) {
+				row[i] = $(this).html();		
+			});
+			$ = cheerio.load(row[row.length - 1]);
+			lastUpdate = $('td').children().text();	
+			var col = [];
+			for (var i = 1; i<row.length-1; i++){
+				$ = cheerio.load(row[i]);
+				$('td').each(function(k, elem) {
+					col[k] = $(this).text().replace(/(\r\n|\n|\r|\t| |)/gm,"");
+		        })
+		        id = col[0];
+				name = col[1];
+				price = col[2];
+				rise = col[3];
+				volume = col[4];
+				json.id = id;
+				json.name = name;
+				json.price = price;
+				json.rise = rise;
+				json.volume = volume;
+				json.lastUpdate = lastUpdate;
+				winston.log('info','testing',json);
+				
+	        }
+
+		}
+        res.send(json);
+	})
+})
+
+app.get('/fall', function(req, res){
+	console.log('calling');
+	url = baseUrl + '?market=1&category=B';
+	request(url, function(error, response, html){
+		if(!error){
+			var $ = cheerio.load(html);	
+			var table = $('div .mainTable_c').html();
+			var id, name, price, rise, volume, lastUpdate;
+			var json = { id:"", name:"", price:"", rise:"", volume:"", lastUpdate:""};
+			var row = [];
+			$ = cheerio.load(table);	
+			$('tr').each(function(i, elem) {
+				row[i] = $(this).html();		
+			});
+			$ = cheerio.load(row[row.length - 1]);
+			lastUpdate = $('td').children().text();	
+			var col = [];
+			for (var i = 1; i<row.length-1; i++){
+				$ = cheerio.load(row[i]);
+				$('td').each(function(k, elem) {
+					col[k] = $(this).text().replace(/(\r\n|\n|\r|\t| |)/gm,"");
+		        })
+		        id = col[0];
+				name = col[1];
+				price = col[2];
+				rise = col[3];
+				volume = col[4];
+				json.id = id;
+				json.name = name;
+				json.price = price;
+				json.rise = rise;
+				json.volume = volume;
+				json.lastUpdate = lastUpdate;
+				winston.log('info','testing',json);
+				
+	        }
+
+		}
+        res.send(json);
+	})
+})
+
+app.get('/volume', function(req, res){
+	console.log('calling');
+	url = baseUrl + '?market=1&category=T';
+	request(url, function(error, response, html){
+		if(!error){
+			var $ = cheerio.load(html);	
+			var table = $('div .mainTable_c').html();
+			var id, name, price, rise, volume, lastUpdate;
+			var json = { id:"", name:"", price:"", rise:"", volume:"", lastUpdate:""};
+			var row = [];
+			$ = cheerio.load(table);	
+			$('tr').each(function(i, elem) {
+				row[i] = $(this).html();		
+			});
+			$ = cheerio.load(row[row.length - 1]);
+			lastUpdate = $('td').children().text();	
+			var col = [];
+			for (var i = 1; i<row.length-1; i++){
+				$ = cheerio.load(row[i]);
+				$('td').each(function(k, elem) {
+					col[k] = $(this).text().replace(/(\r\n|\n|\r|\t| |)/gm,"");
+		        })
+		        id = col[0];
+				name = col[1];
+				price = col[2];
+				rise = col[3];
+				volume = col[4];
+				json.id = id;
+				json.name = name;
+				json.price = price;
+				json.rise = rise;
+				json.volume = volume;
+				json.lastUpdate = lastUpdate;
+				winston.log('info','testing',json);
+				
+	        }
+
+		}
+        res.send(json);
+	})
+})
+
+app.get('/deal', function(req, res){
+	console.log('calling');
+	url = baseUrl + '?market=1&category=V';
+	request(url, function(error, response, html){
+		if(!error){
+			var $ = cheerio.load(html);	
+			var table = $('div .mainTable_c').html();
 			var id, name, price, rise, volume, lastUpdate;
 			var json = { id:"", name:"", price:"", rise:"", volume:"", lastUpdate:""};
 			var row = [];

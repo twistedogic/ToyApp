@@ -1,15 +1,15 @@
 {
-  "name"                  : "node-web-scrape",
+  "name"                  : "ToyApp",
   "version"               : "0.0.1",
   "description"           : "Scrape le web.",
   "main"                  : "server.js",
-  "author"                : "Scotch",
+  "author"                : "twistedogic",
   "dependencies"          : {
     "express"             : "latest",
     "request"             : "latest",
     "cheerio"             : "latest",
     "winston"             : "latest",
     "winston-logstash"    : "latest",
-    "cli-table"		  : "latest"
+    "mailgun-js"          : "latest"
   }
 }
