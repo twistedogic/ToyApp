@@ -28,6 +28,8 @@ var higher = 9.33;
 var lowersent = 0;
 var highersent = 0;
 var baseUrl = 'http://finance.yahoo.com/d/quotes.csv?';
+var quoteUrl = 'http://www.etnet.com.hk/www/eng/stocks/realtime/quote_ci_brief.php?code=';
+var superquoteUrl = 'http://www.etnet.com.hk/www/eng/stocks/realtime/quote_super.php?code=';
 
 // long poll
 setInterval(function() {
