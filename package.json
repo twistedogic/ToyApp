@@ -2,7 +2,7 @@
   "name"                  : "ToyApp",
   "version"               : "0.0.1",
   "description"           : "Scrape le web.",
-  "main"                  : "server.js",
+  "main"                  : "app.js",
   "author"                : "twistedogic",
   "dependencies"          : {
     "express"             : "latest",
