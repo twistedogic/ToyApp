@@ -71,6 +71,7 @@ function stockUrl(stockId){
 
 function thresholdAlert(stockData,stockId){
 	var message = null;
+	var state = null;
 	if (stockData.price < stockId.low){
 		message = {
 			from: 'Automated Alarm <me@twistedogic.mailgun.org>',
@@ -78,6 +79,7 @@ function thresholdAlert(stockData,stockId){
 			subject: stockData.name + ' ' + stockData.id + ' has FALL' ,
 			html: '<h2 style="background-color:red;">' + stockData.price + '</h1>'
 		};
+		state = 0;
 	} else if (stockData.price > stockId.high){
 		message = {
 			from: 'Automated Alarm <me@twistedogic.mailgun.org>',
@@ -85,8 +87,9 @@ function thresholdAlert(stockData,stockId){
 			subject: stockData.name + ' ' + stockData.id + ' has RISE' ,
 			html: '<h2 style="background-color:green;">' + stockData.price + '</h1>'
 		};
+		state = 2;
 	}
-	return message;
+	return [message, state];
 }
 
 function reportAlert(stockData){
@@ -101,7 +104,7 @@ function reportAlert(stockData){
 
 function emailAlert(data){
 	var sent = 0;
-	if(data){
+	if(data[0]){
 		mailgun.messages().send(data, function (error, body) {});
 		sent = 1;
 		console.log(data);
@@ -109,13 +112,15 @@ function emailAlert(data){
 	return sent;
 }
 // long poll
+var currentHigh = [];
+var currentLow	= [];
 setInterval(function(){
 	console.log(timer/1000);
 	timer = timer + sampleRate;
 	if (timer > 10000){
 		timer = 0;
-		lowSent = new Array(stockList.length+1).join('0').split('').map(parseFloat);
-		highSent = lowSent;
+		currentLow = [];
+		currentHigh = [];
 		console.log("reset");
 	}
 	var list = stockUrl(stockList);
@@ -125,20 +130,19 @@ setInterval(function(){
 		if(!error){
 			var stock = stockJSON(html,jsonSchema,stockList);
 			for (var i = 0; i < stockList.length; i++){
-				if (highSent[i] <= 0){
-					// emailAlert(thresholdAlert(stock[i],stockList[i]));
-					highSent[i] = 1;
-					console.log(highSent[i]);
-					lowSent[i] = lowSent[i] - highSent[i];
-					console.log(lowSent[i]);
-				} else if (lowSent[i] <= 0){
-					lowSent[i] = 1;
-					console.log(lowSent);
-					// emailAlert(thresholdAlert(stock[i],stockList[i]));
-					highSent[i] = highSent[i] - lowSent[i];
+				var message = thresholdAlert(stock[i],stockList[i]);
+				if (message){
+					if (message[1] > 1) {
+						currentHigh[i] = 1;
+						currentLow[i] = 0;
+					} else {
+						currentLow[i] = 1;
+						currentHigh[i] = 0;
+					}
 				}
-				console.log(highSent[i]);
 			}
+			console.log(currentHigh);
+			console.log(currentLow);
 		}
 	});
 },sampleRate);
