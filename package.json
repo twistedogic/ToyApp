@@ -10,6 +10,8 @@
     "cheerio"             : "latest",
     "winston"             : "latest",
     "winston-logstash"    : "latest",
-    "mailgun-js"          : "latest"
+    "mailgun-js"          : "latest",
+    "redis"		          : "latest",
+    "node-taffydb"        : "latest"
   }
 }

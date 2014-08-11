@@ -3,7 +3,9 @@ var fs = require('fs');
 var request = require('request');
 var app     = express();
 var Mailgun = require('mailgun-js');
-
+var cheerio = require('cheerio');
+var redis = require("redis")
+  , publisher  = redis.createClient(6379, '10.0.42.1', {});
 //log
 // var winston = require('winston');
 // require('winston-logstash');
@@ -27,124 +29,121 @@ var mailgun = new Mailgun({apiKey: api_key, domain: domain});
 var baseUrl = 'http://finance.yahoo.com/d/quotes.csv?';
 var stockList = [
 {
-	id:"6823.HK",
+	id:"06823",
 	low:9.47,
 	high:9.95
 },{
-	id:"0008.HK",
-	low:4.93,
+	id:"00008",
+	low:4.89,
 	high:4.96
+},{
+    id:"00001",
+    low:140.9,
+    high:144.1
 }];
-var jsonSchema = ["id","name","price","volume","high","low","ER","date"];
 var sampleRate = 5000;
 var timer = 0;
 var lowSent = new Array(stockList.length+1).join('0').split('').map(parseFloat);
 var highSent = lowSent;
 
 // functions
-function stockJSON(csv,schema,stockId){
-	var lines=csv.split("\n");
-	lines.pop();
-	var result = [];
-	for(var i=0;i<lines.length;i++){
-		var info = lines[i].replace(/\r|['"]+/g, '').split(",");
-		info.push(new Date());
-		var obj = {};
-		if (info[0] === stockId[i].id) {
-			for (var j = 0; j < schema.length; j++){
-				obj[schema[j]] = info[j];
-			}
-			result.push(obj);
-		}
-	}
-	//return result; //JavaScript object
-	return result; //JSON
-}
-
 function stockUrl(stockId){
-	var urlString = stockId[0].id;
-	for (var i = 1; i < stockId.length; i++){
-		urlString = urlString + "+" + stockId[i].id;
+	var urlString = [];
+	for (var i = 0; i < stockId.length; i++){
+		var options = {
+			url: 'http://www.etnet.com.hk/www/eng/stocks/realtime/quote_super.php?code=' + stockId[i].id,
+			followRedirect: false,
+			headers:{
+				'User-Agent':'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.153 Safari/537.36'
+			}
+		};
+		urlString.push(options);
 	}
 	return urlString;
 }
 
-function thresholdAlert(stockData,stockId){
-	var message = null;
-	var state = null;
-	if (stockData.price < stockId.low){
-		message = {
-			from: 'Automated Alarm <me@twistedogic.mailgun.org>',
-			to: 'cloudogic@gmail.com',
-			subject: stockData.name + ' ' + stockData.id + ' has FALL' ,
-			html: '<h2 style="background-color:red;">' + stockData.price + '</h1>'
-		};
-		state = 0;
-	} else if (stockData.price > stockId.high){
-		message = {
-			from: 'Automated Alarm <me@twistedogic.mailgun.org>',
-			to: 'cloudogic@gmail.com',
-			subject: stockData.name + ' ' + stockData.id + ' has RISE' ,
-			html: '<h2 style="background-color:green;">' + stockData.price + '</h1>'
-		};
-		state = 2;
-	}
-	return [message, state];
-}
+function stockJSON(stockUrl,stockId){
+	for (var i = 0; i < stockUrl.length; i++) {
+		request(stockUrl[i], function(error, response, html){
+			if(!error && response.statusCode == 200){
+				var $ = cheerio.load(html);
+				var table = $('#left').html();
+				lastUpdate = new Date();
+				var row = [];
+				$ = cheerio.load(table);
+				$('table').each(function(j, elem) {
+					row[j] = $(this).html();
+				});
+				var col = [];
+				$ = cheerio.load(row[0]);
+				temp = $('tr td').text().replace(/(\r\n|\n|\r| |)/gm,"").split("\t");
+			    id = $('.stockName').children().first().text().replace(/(\r\n|\n|\r|\t| |)/gm,"");
+				name = $('.stockName').children().last().text().replace(/(\r\n|\n|\r|\t| |)/gm,"");
+				price = $('.number').text().replace(/(\r\n|\n|\r|\t| |)/gm,"");
+				change = temp[temp.length-1];
+				$ = cheerio.load(row[1]);
+				$('tr').each(function(k, elem) {
+					col[k] = $(this).children().last().text().replace(/(\r\n|\n|\r|\t| |)/gm,"");
+				})
+				high = col[0];
+				low = col[1];
+				close = col[2];
+				open = col[3];
+				shareTr = col[4];
+				turnover = col[5];
+				NoTr = col[6];
 
-function reportAlert(stockData){
-	var data = {
-		from: 'Automated Alarm <me@twistedogic.mailgun.org>',
-		to: 'cloudogic@gmail.com',
-		subject: 'Daily report',
-		text: '<h2 style="background-color:red;">' + stockData.price + '</h1>'
-	};
-	return data;
-}
-
-function emailAlert(data){
-	var sent = 0;
-	if(data[0]){
-		mailgun.messages().send(data, function (error, body) {});
-		sent = 1;
-		console.log(data);
-	}
-	return sent;
-}
-// long poll
-var currentHigh = [];
-var currentLow	= [];
-setInterval(function(){
-	console.log(timer/1000);
-	timer = timer + sampleRate;
-	if (timer > 10000){
-		timer = 0;
-		currentLow = [];
-		currentHigh = [];
-		console.log("reset");
-	}
-	var list = stockUrl(stockList);
-	console.log(list);
-	url = baseUrl + 's=' + list + '&f=snl1vhgr';
-	request(url, function(error, response, html){
-		if(!error){
-			var stock = stockJSON(html,jsonSchema,stockList);
-			for (var i = 0; i < stockList.length; i++){
-				var message = thresholdAlert(stock[i],stockList[i]);
-				if (message){
-					if (message[1] > 1) {
-						currentHigh[i] = 1;
-						currentLow[i] = 0;
-					} else {
-						currentLow[i] = 1;
-						currentHigh[i] = 0;
-					}
-				}
+				var col = [];
+				$ = cheerio.load(row[2]);
+				$('tr').each(function(k, elem) {
+					col[k] = $(this).children().last().text().replace(/(\r\n|\n|\r|\t| |)/gm,"");
+				})
+				AmountT = col[0];
+				VWAP = col[1];
+				BuySell = col[2];
+				ShortSell = col[3];
+				monthHigh = col[4];
+				monthLow = col[5];
+				D10SMA = col[6];
+				D20SMA = col[7];
+				D14RSI = col[8];
+				RiskReturnRate = col[9];
+				var json = {}; 
+				json.id = id;
+				json.name = name;
+				json.price = price;
+				json.change = change;
+				json.high = high;
+				json.low = low;
+				json.close = close;
+				json.open = open;
+				json.shareTr = shareTr;
+				json.turnover = turnover;
+				json.NoTr = NoTr;
+				json.AmountT = AmountT;
+				json.VWAP = VWAP;
+				json.BuySell = BuySell;
+				json.ShortSell = ShortSell;
+				json.monthHigh = monthHigh;
+				json.monthLow = monthLow;
+				json.D10SMA = D10SMA;
+				json.D20SMA = D20SMA;
+				json.D14RSI = D14RSI;
+				json.RiskReturnRate = RiskReturnRate;
+				json.lastUpdate = lastUpdate;
+			} else {
+				console.log(error);
+				console.log(response.statusCode);
+				json = response.statusCode;
 			}
-			console.log(currentHigh);
-			console.log(currentLow);
-		}
-	});
+			publisher.publish(json.id, JSON.stringify(json));
+		});
+	}
+}
+
+// long poll
+setInterval(function(){
+    stockJSON(stockUrl(stockList));
 },sampleRate);
 
 app.listen(port);
