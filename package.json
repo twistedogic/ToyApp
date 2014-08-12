@@ -12,6 +12,7 @@
     "winston-logstash"    : "latest",
     "mailgun-js"          : "latest",
     "redis"		          : "latest",
-    "node-taffydb"        : "latest"
+    "node-taffydb"        : "latest",
+    "moment"              : "latest"
   }
 }

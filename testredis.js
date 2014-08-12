@@ -29,13 +29,13 @@ function thresholdAlert(stockData,stockId){
     var lowKey = stockData.id + "lowSent";
 	var message = {};
 	var Limit = stockDB({id:stockData.id}).first();
-    publisher.get(highKey, function(err, reply) {
+    publisher.ttl(highKey, function(err, reply) {
         // reply is null when the key is missing
-        if (reply === null){
+        if (reply < 0){
             if (stockData.price > Limit.high){
 		        message = {
 			        from: 'Automated Alarm <me@twistedogic.mailgun.org>',
-			        to: 'cloudogic@gmail.com',
+			        to: 'cloudogic@gmail.com, jordan.yy.li@pccw.com',
 			        subject: stockData.name + ' ' + stockData.id + ' has FALL' ,
 			        html: '<h1 style="background-color:red;">' + stockData.price + '</h1>'
 		        };
@@ -44,13 +44,13 @@ function thresholdAlert(stockData,stockId){
         }
         console.log(highKey + ":" + reply);
     });
-    publisher.get(lowKey, function(err, reply) {
+    publisher.ttl(lowKey, function(err, reply) {
         // reply is null when the key is missing
-        if (reply === null){
+        if (reply < 0){
             if (stockData.price < Limit.low){
 		        message = {
 			        from: 'Automated Alarm <me@twistedogic.mailgun.org>',
-			        to: 'cloudogic@gmail.com',
+			        to: 'cloudogic@gmail.com, jordan.yy.li@pccw.com',
 			        subject: stockData.name + ' ' + stockData.id + ' has RISE' ,
 			        html: '<h1 style="background-color:green;">' + stockData.price + '</h1>'
 		        };
@@ -62,12 +62,29 @@ function thresholdAlert(stockData,stockId){
     });
 }
 
-function reportAlert(stockData){
+function reportAlert(stockData,schema){
+    var table = '<table style="width:300px"><tr>';
+    var header;
+    var content;
+    for (var i = 0; i < schema.length; i++){
+        temp = '<th>' + schema[i] + '</th>'
+        header = header + temp;
+    }
+    table = table + header + '</tr>';
+    for (var j = 0; j < stockData.length; i++){
+        temp = '<tr>';
+        for (var k = 0; i < schema.length; i++){
+            temp = temp + '<td>' + 
+        }
+        temp = temp + '</tr>';
+        content = content + temp;
+    }
+    table = table + content;
 	var data = {
 		from: 'Automated Alarm <me@twistedogic.mailgun.org>',
 		to: 'cloudogic@gmail.com',
 		subject: 'Daily report',
-		text: '<h2 style="background-color:red;">' + stockData.price + '</h1>'
+		text: table;
 	};
 	return data;
 }
@@ -84,10 +101,14 @@ function emailAlert(key,data){
 
 
 subscriber.on("message", function(channel, message) {
-  var data = JSON.parse(message);
-  console.log(channel + ": " + data.price);
-  thresholdAlert(data,stockDB);
+    if (channel === "DayEnd") {
+        
+    } else {
+        var data = JSON.parse(message);
+        thresholdAlert(data,stockDB);
+    }
 });
 for (var i = 0; i < stockList.length; i++){
     subscriber.subscribe(stockList[i].id);
 }
+subscriber.subscribe("DayEnd");

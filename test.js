@@ -1,3 +1,5 @@
+var port = process.env.PORT || '3000';
+var redisHost = process.env.REDISHOST || '10.0.42.1';
 var express = require('express');
 var fs = require('fs');
 var request = require('request');
@@ -5,7 +7,7 @@ var app     = express();
 var Mailgun = require('mailgun-js');
 var cheerio = require('cheerio');
 var redis = require("redis")
-  , publisher  = redis.createClient(6379, '10.0.42.1', {});
+  , publisher  = redis.createClient(6379, redisHost, {});
 //log
 // var winston = require('winston');
 // require('winston-logstash');
@@ -19,7 +21,6 @@ var redis = require("redis")
 //     handleExceptions: true
 // });
 // ENV config
-var port = process.env.PORT || '3000';
 var api_key = 'key-3z2nwyjiq240lyqp6sz3t3a852toy9i2';
 var domain = 'twistedogic.mailgun.org';
 var mailgun = new Mailgun({apiKey: api_key, domain: domain});
@@ -63,6 +64,7 @@ function stockUrl(stockId){
 }
 
 function stockJSON(stockUrl,stockId){
+    publisher.del("report");
 	for (var i = 0; i < stockUrl.length; i++) {
 		request(stockUrl[i], function(error, response, html){
 			if(!error && response.statusCode == 200){
@@ -137,6 +139,7 @@ function stockJSON(stockUrl,stockId){
 				json = response.statusCode;
 			}
 			publisher.publish(json.id, JSON.stringify(json));
+			publisher.append("report", JSON.stringify(json));
 		});
 	}
 }
