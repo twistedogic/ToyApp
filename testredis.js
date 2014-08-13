@@ -21,7 +21,7 @@ var stockList = [
     low:140.9,
     high:144.1
 }];
-
+var jsonSchema = ["id","name","price","change","high","low","close","open","shareTr","turnover","NoTr","AmountT","VWAP","BuySell","ShortSell","monthHigh","monthLow","D10SMA","D20SMA","D14RSI","RiskReturnRate","lastUpdate"];
 var stockDB = TAFFY(stockList);
 
 function thresholdAlert(stockData,stockId){
@@ -36,13 +36,12 @@ function thresholdAlert(stockData,stockId){
 		        message = {
 			        from: 'Automated Alarm <me@twistedogic.mailgun.org>',
 			        to: 'cloudogic@gmail.com, jordan.yy.li@pccw.com',
-			        subject: stockData.name + ' ' + stockData.id + ' has FALL' ,
-			        html: '<h1 style="background-color:red;">' + stockData.price + '</h1>'
+			        subject: stockData.name + ' ' + stockData.id + ' has RISE' ,
+			        html: '<h1 style="background-color:green;">' + stockData.price + '</h1>'
 		        };
 		        emailAlert(highKey, message);
             }
         }
-        console.log(highKey + ":" + reply);
     });
     publisher.ttl(lowKey, function(err, reply) {
         // reply is null when the key is missing
@@ -51,14 +50,13 @@ function thresholdAlert(stockData,stockId){
 		        message = {
 			        from: 'Automated Alarm <me@twistedogic.mailgun.org>',
 			        to: 'cloudogic@gmail.com, jordan.yy.li@pccw.com',
-			        subject: stockData.name + ' ' + stockData.id + ' has RISE' ,
-			        html: '<h1 style="background-color:green;">' + stockData.price + '</h1>'
+			        subject: stockData.name + ' ' + stockData.id + ' has FALL' ,
+			        html: '<h1 style="background-color:red;">' + stockData.price + '</h1>'
 		        };
 		        console.log (message);
 		        emailAlert(lowKey, message);
             }
         }
-        console.log(lowKey + ":" + reply);
     });
 }
 
@@ -73,9 +71,28 @@ function reportAlert(stockData,schema){
     table = table + header + '</tr>';
     for (var j = 0; j < stockData.length; i++){
         temp = '<tr>';
-        for (var k = 0; i < schema.length; i++){
-            temp = temp + '<td>' + 
-        }
+        temp = temp + '<td>' + stockData[i].id + '</td>';
+        temp = temp + '<td>' + stockData[i].name + '</td>';
+        temp = temp + '<td>' + stockData[i].price + '</td>';
+        temp = temp + '<td>' + stockData[i].change + '</td>';
+        temp = temp + '<td>' + stockData[i].high + '</td>';
+        temp = temp + '<td>' + stockData[i].low + '</td>';
+        temp = temp + '<td>' + stockData[i].close + '</td>';
+        temp = temp + '<td>' + stockData[i].open + '</td>';
+        temp = temp + '<td>' + stockData[i].shareTr + '</td>';
+        temp = temp + '<td>' + stockData[i].turnover + '</td>';
+        temp = temp + '<td>' + stockData[i].NoTr + '</td>';
+        temp = temp + '<td>' + stockData[i].AmountT + '</td>';
+        temp = temp + '<td>' + stockData[i].VWAP + '</td>';
+        temp = temp + '<td>' + stockData[i].BuySell + '</td>';
+        temp = temp + '<td>' + stockData[i].ShortSell + '</td>';
+        temp = temp + '<td>' + stockData[i].monthHigh + '</td>';
+        temp = temp + '<td>' + stockData[i].monthLow + '</td>';
+        temp = temp + '<td>' + stockData[i].D10SMA + '</td>';
+        temp = temp + '<td>' + stockData[i].D20SMA + '</td>';
+        temp = temp + '<td>' + stockData[i].D14RSI + '</td>';
+        temp = temp + '<td>' + stockData[i].RiskReturnRate + '</td>';
+        temp = temp + '<td>' + stockData[i].lastUpdate + '</td>';
         temp = temp + '</tr>';
         content = content + temp;
     }
@@ -84,7 +101,7 @@ function reportAlert(stockData,schema){
 		from: 'Automated Alarm <me@twistedogic.mailgun.org>',
 		to: 'cloudogic@gmail.com',
 		subject: 'Daily report',
-		text: table;
+		html: table
 	};
 	return data;
 }
@@ -102,9 +119,12 @@ function emailAlert(key,data){
 
 subscriber.on("message", function(channel, message) {
     if (channel === "DayEnd") {
-        
+        subscriber.get("report", function(error,reply){
+            reportAlert(reply,schema);
+        })
     } else {
         var data = JSON.parse(message);
+        console.log(data.id + ": " + data.price);
         thresholdAlert(data,stockDB);
     }
 });
